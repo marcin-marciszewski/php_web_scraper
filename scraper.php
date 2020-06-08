@@ -53,6 +53,7 @@ function scrape_single_page($link) {
 
     // Find closing date paragraph and extract the date
     $first = true;
+    $descriptions =[];
     foreach($ps as $p){
         if (strpos($p->plaintext, 'Closing Date:') !== false ||strpos($p->plaintext, 'Closing date:') !== false) {
             // Remove "Closing date:" from the string
@@ -61,18 +62,34 @@ function scrape_single_page($link) {
             $closing_date= $date;
         }
 
-        
-         
+        // Find paragraph with salary
+        if (strpos(strtolower($p->plaintext), 'per hour') !== false ||strpos(strtolower($p->plaintext), 'per annum') !== false ||strpos(strtolower($p->plaintext), 'salary') !== false ||strpos(strtolower($p->plaintext), 'p/h') !== false ||strpos(strtolower($p->plaintext), 'relocation') !== false) {
+            $salary= $p->plaintext;
+        }
+
+        // Get the name of the care home
+        if (preg_match('/Nursing Home|Home Nursing|Care Home|Home Care|Nursing House|House Nursing|Care House|Court|Lodge|Home$|House$|Home,|House,|Residential|Centre|Meadows|Place|Road|Street|Gardens|Lane|Avenue|Foyer/',$p->plaintext)&&(strlen(trim($p->plaintext))<110)&& $first) {
+            $carehome_name= $p->plaintext;
+            $first=false;
+        } 
+
+    
+        if(strlen(trim($p->plaintext))>200) {
+            $descriptions[] = $p->plaintext;
+        }
     }
 
+    $description = join($descriptions);
+
     
-    
-
-
-
     
 
 
+
+    
+
+    echo $description ;
+    echo '<br>';
     echo $title;
     echo '<br>';
     echo $carehome_name;
@@ -89,18 +106,17 @@ function scrape_single_page($link) {
     echo '<br>';
     echo $closing_date;
     echo '<br>';
-    // echo $description;
-    // echo '<br>';
+   
     echo '====================================================='; 
     echo '<br>';
 
 }
 
-// scrape_single_page($all_ads_links[1]);
+scrape_single_page($all_ads_links[1]);
 
-foreach($all_ads_links as $ad_link){
-    scrape_single_page($ad_link);
-}
+// foreach($all_ads_links as $ad_link){
+//     scrape_single_page($ad_link);
+// }
 
 
 
