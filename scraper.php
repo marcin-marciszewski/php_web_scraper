@@ -1,12 +1,13 @@
 <?php
 
+
 include('simple_html_dom.php');
 
 // Get the page for scraping
 $html = file_get_html('https://jobs.sanctuary-group.co.uk/search/');
 
 // Get total number of results
-$total_results = $html->find('span.paginationLabel',0)->find('b',1)->innertext;;
+$total_results = $html->find('span.paginationLabel',0)->find('b',1)->plaintext;;
 $total_results = (int) $total_results;
 
 // Create links to results subpages
@@ -28,22 +29,83 @@ foreach($result_pages as $result_page){
     }
 }
 
-// Scraping require information from single add
+
+
+
+// Scraping require information from single ad
 function scrape_single_page($link) {
     $ad_page = file_get_html($link);
-    $job_title =$ad_page->find('span[itemprop="title"]',0);
-    echo($job_title);
+    $title = $ad_page->find('span[itemprop="title"]',0)->plaintext;
+    $title = trim($title);
+    $operation = $ad_page->find('span[itemprop="facility"]',0)->plaintext;
+    $operation = trim($operation);
+    $location = $ad_page->find('span[itemprop="jobLocation"]',0)->plaintext;
+    $requisition_number = $ad_page->find('span[itemprop="customfield5"]',0)->plaintext;
+    if($ad_page->find('span[itemprop="department"]',0)) {
+        $department = $ad_page->find('span[itemprop="department"]',0)->plaintext;
+    } else {
+        $department = $ad_page->find('span[itemprop="dept"]',0)->plaintext;
+    }
+
+    $job_description_full =$ad_page->find('span[class="jobdescription"]',0);
+
+    $ps =$job_description_full->find('p');
+
+    // Find closing date paragraph and extract the date
+    $first = true;
+    foreach($ps as $p){
+        if (strpos($p->plaintext, 'Closing Date:') !== false ||strpos($p->plaintext, 'Closing date:') !== false) {
+            // Remove "Closing date:" from the string
+            $text = substr($p->plaintext, 0, 13);
+            $date = str_replace($text,'',$p->plaintext);
+            $closing_date= $date;
+        }
+
+        
+         
+    }
+
+    
+    
+
+
+
+    
+
+
+    echo $title;
     echo '<br>';
+    echo $carehome_name;
+    echo '<br>';
+    echo $location;
+    echo '<br>';
+    echo $department;
+    echo '<br>';
+    echo $operation;
+    echo '<br>';
+    echo $requisition_number;
+    echo '<br>';  
+    echo $salary;    
+    echo '<br>';
+    echo $closing_date;
+    echo '<br>';
+    // echo $description;
+    // echo '<br>';
+    echo '====================================================='; 
+    echo '<br>';
+
 }
 
-// scrape_single_page($all_ads_links[0]);
+// scrape_single_page($all_ads_links[1]);
 
 foreach($all_ads_links as $ad_link){
     scrape_single_page($ad_link);
 }
 
 
-// scrape_single_page($all_ads_links[0]);
+
+
+//  scrape_single_page($all_ads_links[0]);
 
 
 // foreach($all_ads_links as $ads_link){
@@ -79,4 +141,7 @@ foreach($all_ads_links as $ad_link){
 //     echo '<br>';
 // }
 ?> 
+
+
+
 
