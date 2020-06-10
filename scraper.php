@@ -6,6 +6,10 @@ include('simple_html_dom.php');
 // Get the page for scraping
 $html = file_get_html('https://jobs.sanctuary-group.co.uk/search/');
 
+
+
+$ads_number = count($html->find('span.jobTitle.hidden-phone'));
+
 // Get total number of results
 $total_results = $html->find('span.paginationLabel',0)->find('b',1)->plaintext;;
 $total_results = (int) $total_results;
@@ -13,9 +17,10 @@ $total_results = (int) $total_results;
 // Create links to results subpages
 $result_pages = [];
 
-for($i=0; $i<$total_results;$i+=25){
+for($i=0; $i<$total_results;$i+=$ads_number){
     $result_pages[] ="https://jobs.sanctuary-group.co.uk/search/?q=&sortColumn=referencedate&sortDirection=desc&startrow=$i";
 }
+
 
 // Get links to all adverts
 $all_ads_links =[];
@@ -55,9 +60,35 @@ function scrape_single_page($link) {
 
     $ps =$job_description_full->find('p');
 
+    // Remove empty white space
+    $paragraphs = [];
+    for($i=0;$i<count($ps);$i++){
+        if(strpos($ps[$i], '&nbsp;')){
+            $ps[$i]->innertext = '';
+        }
+        $paragraphs[] = $ps[$i]->plaintext;
+     }
+    //  Paragraphs with text
+     $paragraphs_with_text = [];
+     foreach($paragraphs as $p){
+         if($p !== ''){
+             $paragraphs_with_text[] = $p;
+         }
+     }
+     
+    //  
+
+     
+    // Get the name of the care home
+    if($operation == 'Sanctuary Care'){
+        $carehome_name = $paragraphs_with_text[3];
+    }elseif($operation == 'Sanctuary Supported Living' || $operation == 'Sanctuary Retirement Living' ){
+        $carehome_name = $paragraphs_with_text[1];
+    }
+
+ 
     // Find closing date paragraph and extract the date
     $first = true;
-    $descriptions =[];
     foreach($ps as $p){
         if (strpos($p->plaintext, 'Closing Date:') !== false ||strpos($p->plaintext, 'Closing date:') !== false) {
             // Remove "Closing date:" from the string
@@ -71,20 +102,21 @@ function scrape_single_page($link) {
             $salary= $p->plaintext;
         }
 
-        // Get the name of the care home
-        if (preg_match('/Nursing Home|Home Nursing|Care Home|Home Care|Nursing House|House Nursing|Care House|Court|Lodge|Home$|House$|Home,|House,|Residential|Centre|Meadows|Place|Road|Street|Gardens|Lane|Avenue|Foyer/',$p->plaintext)&&(strlen(trim($p->plaintext))<110)&& $first) {
-            $carehome_name= $p->plaintext;
-            $first=false;
-        } 
 
-        // Get description 
-        if(strlen(trim($p->plaintext))>200) {
-            $descriptions[] = $p->plaintext;
-        }
     }
 
+       // Find description paragraphs
+       $description_paragraphs =[];
+       foreach($paragraphs_with_text as $paragraph){
+           if($paragraph !==$title ||$paragraph !==$carehome_name ||$paragraph !==$location ||$paragraph !==$department ||$paragraph !==$operation ||$paragraph !==$requisition_number ||$paragraph !==$salary ||$paragraph !==$closing_date){
+            $description_paragraphs[] = $paragraph;
+           }
+       }
+   
+
     // Join all the paragraphs of the description
-    $description = join($descriptions);
+    $description = join($description_paragraphs);
+
 
     // Create an array with all the data
      $records = array(
@@ -99,14 +131,14 @@ function scrape_single_page($link) {
         'description' => $description 
 );
 
+
+
     // Write data to the csv file
     $file = fopen('records.csv', "a");
 
     fputcsv($file,$records);
 
     fclose($file);
-
-    echo 'CSV Created';
 }
 
 
@@ -114,6 +146,8 @@ function scrape_single_page($link) {
 foreach($all_ads_links as $ad_link){
     scrape_single_page($ad_link);
 }
+
+//  scrape_single_page($all_ads_links[12]);
 ?> 
 
 
